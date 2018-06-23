@@ -88,14 +88,14 @@ object Par {
     paragraphs.map(asyncF(_.split("\\s+").length)).foldRight(unit(0))(map2(_, _)(_ + _))
 
   def map3[A, B, C, D](a: Par[A], b: Par[B], c: Par[C])(f: (A, B, C) => D): Par[D] =
-    map2(map2(a, b)((a, b) => f(a, b, _)), c)((ab, c) => ab(c))
+    map2(map2(a, b)((a, b) => f(a, b, _: C)), c)((ab, c) => ab(c))
 
   def map4[A, B, C, D, E](a: Par[A], b: Par[B], c: Par[C], d: Par[D])(f: (A, B, C, D) => E): Par[E] =
-    map2(map3(a, b, c)((a, b, c) => f(a, b, c, _)), d)((abc, d) => abc(d))
+    map2(map3(a, b, c)((a, b, c) => f(a, b, c, _: D)), d)((abc, d) => abc(d))
 
   def map5[A, B, C, D, E, F](a: Par[A], b: Par[B], c: Par[C], d: Par[D], e: Par[E])(f: (A, B, C,
     D, E) => F): Par[F] =
-    map2(map4(a, b, c, d)((a, b, c, d) => f(a, b, c, d, _)), e)((abcd, e) => abcd(e))
+    map2(map4(a, b, c, d)((a, b, c, d) => f(a, b, c, d, _: E)), e)((abcd, e) => abcd(e))
 
 
   // map(x)(f) = f(x)

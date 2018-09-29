@@ -5,7 +5,7 @@ import fpinscala.testing._
 import scala.language.higherKinds
 import scala.util.matching.Regex
 
-trait Parsers {
+trait Parsers[Parser[+_]] {
   self => // so inner classes may call methods of trait
 
   implicit def operators[A](p: Parser[A]): ParserOps[A] = ParserOps[A](p)

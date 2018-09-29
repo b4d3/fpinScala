@@ -28,11 +28,6 @@ shell, which you can fill in and modify while working through the chapter.
 
 case class Gen[+A](sample: State[RNG, A]) {
 
-  def listOfN(n: Int, g: Gen[A]): Gen[List[A]] = {
-    val list = List.fill(n)(g.sample)
-    Gen(State.sequence(list))
-  }
-
   def flatMap[B](f: A => Gen[B]): Gen[B] = Gen(this.sample.flatMap(f(_).sample))
 
   def map[B](f: A => B): Gen[B] = Gen(this.sample.map(f(_)))
@@ -40,7 +35,7 @@ case class Gen[+A](sample: State[RNG, A]) {
   def map2[B, C](g: Gen[B])(f: (A, B) => C): Gen[C] =
     Gen(sample.map2(g.sample)(f))
 
-  def listOfNViaFlatmap(size: Gen[Int]): Gen[List[A]] = size.flatMap(n => listOfN(n, this))
+  def listOfNViaFlatmap(size: Gen[Int]): Gen[List[A]] = size.flatMap(n => Gen.listOfN(n, this))
 
   def unsized: SGen[A] = SGen(_ => this)
 }
@@ -78,11 +73,11 @@ object Gen {
   }))
 
 
-  def listOf[A](g: Gen[A]): SGen[List[A]] = SGen(n => g.listOfN(n, g))
+  def listOf[A](g: Gen[A]): SGen[List[A]] = SGen(n => listOfN(n, g))
 
   def listOf1[A](g: Gen[A]): SGen[List[A]] = SGen(n => {
-    if (n < 1) g.listOfN(1, g)
-    else g.listOfN(n, g)
+    if (n < 1) listOfN(1, g)
+    else listOfN(n, g)
   })
 
   val maxProp: Prop = forAll(listOf1(Gen.choose(-10, 10))) { ns =>
@@ -98,6 +93,10 @@ object Gen {
     ns.isEmpty || ns.size == 1 || ns.sorted.takeRight(ns.size - 1).zip(ns.sorted.drop(1)).forall(pair => pair._1 < pair._2)
   }
 
+  def listOfN[A](n: Int, g: Gen[A]): Gen[List[A]] = {
+    val list = List.fill(n)(g.sample)
+    Gen(State.sequence(list))
+  }
 }
 
 sealed trait Result {
@@ -134,7 +133,7 @@ case class Prop(run: (MaxSize, TestCases, RNG) => Result) {
     (max, n, rng) =>
       run(max, n, rng) match {
         case Proved | Passed => Passed
-        case Falsified(msg, _) => p.run(n, rng) match {
+        case Falsified(msg, _) => p.run(max, n, rng) match {
           case Proved | Passed => Passed
           case Falsified(msg2, successCount) => Falsified(msg + "\n" + msg2, successCount)
         }
@@ -184,8 +183,8 @@ object Prop {
       }
 
       (trueResult, falseResult) match {
-        case (Falsified, _) => trueResult
-        case (_, Falsified) => falseResult
+        case (_: Falsified, _) => trueResult
+        case (_, _: Falsified) => falseResult
         case _ => Proved
       }
     }

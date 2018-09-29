@@ -171,7 +171,7 @@ case class Machine(locked: Boolean, candies: Int, coins: Int)
 object State {
   type Rand[A] = State[RNG, A]
 
-  val int: State[RNG, Int] = (rng: RNG) => rng.nextInt
+  val int: State[RNG, Int] = State((rng: RNG) => rng.nextInt)
 
   def unit[S, A](a: A): State[S, A] = State(s => (a, s))
 
